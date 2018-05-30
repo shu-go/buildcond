@@ -21,3 +21,8 @@ func UnlessTest(f func()) {
 		f()
 	}
 }
+
+// IsTest returns true if in `go test`.
+func IsTest() bool {
+	return testing
+}

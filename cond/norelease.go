@@ -11,3 +11,8 @@ func IfRelease(f func()) {
 func UnlessRelease(f func()) {
 	f()
 }
+
+// IsRelease returns true if the build tag 'release' is enabled.
+func IsRelease() bool {
+	return false
+}

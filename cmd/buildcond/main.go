@@ -13,9 +13,9 @@ import (
 )
 
 type globalCmd struct {
-	Pkg    string `cli:"pkg=path/to/pkg"  help:"path to the pkg"`
+	Tag    string `cli:"tag=BUILD_TAG"       help:"a build tag"`
+	Pkg    string `cli:"pkg=path/to/pkg"     help:"path to the pkg"`
 	Output string `cli:"output=path/to/pkg"  help:"path to the output directory (default: --pkg)"`
-	Tag    string `cli:"tag=BUILD_TAG" help:"a build tag"`
 }
 
 func (g globalCmd) Run(args []string) error {
@@ -44,6 +44,11 @@ func If{{capitalize .Tag}}(f func()) {
 // Unless{{capitalize .Tag}} executes function f if the build tag '{{.Tag}}' is disabled.
 func Unless{{capitalize .Tag}}(f func()) {
 	{{if .Not}}{{else}}// {{end}}f()
+}
+
+// Is{{capitalize .Tag}} returns true if the build tag '{{.Tag}}' is enabled.
+func Is{{capitalize .Tag}}() bool {
+	return {{if .Not}}false{{else}}true{{end}}
 }
 `
 	templParams := struct {

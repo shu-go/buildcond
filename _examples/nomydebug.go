@@ -11,3 +11,8 @@ func IfMydebug(f func()) {
 func UnlessMydebug(f func()) {
 	f()
 }
+
+// IsMydebug returns true if the build tag 'mydebug' is enabled.
+func IsMydebug() bool {
+	return false
+}

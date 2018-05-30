@@ -5,11 +5,14 @@ import (
 	"os"
 	"testing"
 
-	"bitbucket.org/shu/buildcond/test"
+	"bitbucket.org/shu/buildcond/cond"
 )
 
 func TestTestDo(t *testing.T) {
-	test.Do(func() {
-		fmt.Fprintf(os.Stderr, "buildcond/test is enabled\n")
+	cond.IfTest(func() {
+		fmt.Fprintf(os.Stderr, "IfTest is functioning\n")
+	})
+	cond.UnlessTest(func() {
+		t.Errorf("noooo!")
 	})
 }

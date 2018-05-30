@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"bitbucket.org/shu/gli"
@@ -14,8 +15,7 @@ import (
 type globalCmd struct {
 	Pkg    string `cli:"pkg=path/to/pkg"  help:"path to the pkg"`
 	Output string `cli:"output=path/to/pkg"  help:"path to the output directory (default: --pkg)"`
-	Tag    string `cli:"tag=BUILD_TAG" help:"buildtag"`
-	Doc    string `help:"a document for the function pkg.Do (default: Do executes function f if the buildtag '{tag}' is enabled.)"`
+	Tag    string `cli:"tag=BUILD_TAG" help:"a build tag"`
 }
 
 func (g globalCmd) Run(args []string) error {
@@ -31,28 +31,33 @@ func (g globalCmd) Run(args []string) error {
 	if g.Output == "" {
 		g.Output = g.Pkg
 	}
-	if g.Doc == "" {
-		g.Doc = "Do executes function f if the buildtag '" + g.Tag + "' is enabled."
-	}
 
-	templText := `// +build {{.Not}}{{.Tag}}
+	templText := `// +build {{if .Not}}!{{end}}{{.Tag}}
 
 package {{.PkgLeaf}}
 
-// {{.Doc}}
-func Do(f func()) {
-	{{.MayBeAComment}}f()
+// If{{capitalize .Tag}} executes function f if the build tag '{{.Tag}}' is enabled.
+func If{{capitalize .Tag}}(f func()) {
+	{{if .Not}}// {{end}}f()
+}
+
+// Unless{{capitalize .Tag}} executes function f if the build tag '{{.Tag}}' is disabled.
+func Unless{{capitalize .Tag}}(f func()) {
+	{{if .Not}}{{else}}// {{end}}f()
 }
 `
 	templParams := struct {
-		Not, Tag, PkgLeaf, Doc, MayBeAComment string
+		Not          bool
+		Tag, PkgLeaf string
 	}{
 		Tag:     g.Tag,
 		PkgLeaf: pkgleaf(g.Pkg),
-		Doc:     g.Doc,
 	}
 
-	templ, err := template.New("tag").Parse(templText)
+	funcMap := template.FuncMap{
+		"capitalize": strings.Title,
+	}
+	templ, err := template.New("tag").Funcs(funcMap).Parse(templText)
 	if err != nil {
 		return fmt.Errorf("parsing template text: %v", err)
 	}
@@ -67,8 +72,7 @@ func Do(f func()) {
 	if err != nil {
 		return fmt.Errorf("create %v: %v", filename, err)
 	}
-	templParams.Not = ""
-	templParams.MayBeAComment = ""
+	templParams.Not = false
 	err = templ.Execute(file, templParams)
 	if err != nil {
 		file.Close()
@@ -80,8 +84,7 @@ func Do(f func()) {
 	if err != nil {
 		return fmt.Errorf("create %v: %v", filename, err)
 	}
-	templParams.Not = "!"
-	templParams.MayBeAComment = "// "
+	templParams.Not = true
 	err = templ.Execute(file, templParams)
 	if err != nil {
 		file.Close()
@@ -94,16 +97,18 @@ func Do(f func()) {
 func main() {
 	app := gli.New(&globalCmd{})
 	app.Name = "buildcond"
-	app.Desc = "A go-generate command to generate a {buildtag}.Do function (generates {tag}.go and no{tag}.go) "
+	app.Desc = "A go-generate command to generate a {build tag}.Do function (generates {tag}.go and no{tag}.go) "
 	app.Version = "0.1.0"
 	app.Usage = `buildcond --tag=mytag
-buildcond --tag=mytag --pkg=my --output=tag/my`
+buildcond --tag=mytag --pkg=my --output=cond/my`
 	app.Copyright = "(C) 2018 Shuhei Kubota"
+
+	//app.SuppressErrorOutput = true
 
 	err := app.Run(os.Args)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+		//fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 }

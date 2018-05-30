@@ -5,18 +5,32 @@ package main
 import (
 	"fmt"
 
-	"bitbucket.org/shu/buildcond/debug"
-	"bitbucket.org/shu/buildcond/test"
+	"bitbucket.org/shu/buildcond/cond"
 )
 
 func main() {
-	debug.Do(func() {
+	cond.IfDebug(func() {
 		fmt.Println("debug")
 	})
-	Do(func() {
-		fmt.Println("MY debug")
+	cond.UnlessDebug(func() {
+		fmt.Println("!debug")
 	})
-	test.Do(func() {
+
+	cond.IfRelease(func() {
+		fmt.Println("release")
+	})
+	cond.UnlessRelease(func() {
+		fmt.Println("!release")
+	})
+
+	IfMydebug(func() {
+		fmt.Println("mydebug")
+	})
+	UnlessMydebug(func() {
+		fmt.Println("!mydebug")
+	})
+
+	cond.IfTest(func() {
 		fmt.Println("testing!!??")
 	})
 }

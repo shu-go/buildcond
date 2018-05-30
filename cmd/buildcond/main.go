@@ -62,29 +62,32 @@ func Unless{{capitalize .Tag}}(f func()) {
 		return fmt.Errorf("parsing template text: %v", err)
 	}
 
+	// mkdir
 	err = os.MkdirAll(g.Output, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("mkdir %v: %v", g.Output, err)
 	}
 
+	// gen tag.go
+	templParams.Not = false
 	filename := filepath.Join(g.Output, g.Tag+".go")
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("create %v: %v", filename, err)
 	}
-	templParams.Not = false
 	err = templ.Execute(file, templParams)
 	if err != nil {
 		file.Close()
 		return fmt.Errorf("write to %v: %v", filename, err)
 	}
 
+	// gen notag.go
+	templParams.Not = true
 	filename = filepath.Join(g.Output, "no"+g.Tag+".go")
 	file, err = os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("create %v: %v", filename, err)
 	}
-	templParams.Not = true
 	err = templ.Execute(file, templParams)
 	if err != nil {
 		file.Close()

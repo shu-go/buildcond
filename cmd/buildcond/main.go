@@ -18,21 +18,7 @@ type globalCmd struct {
 	Output string `cli:"output=path/to/pkg"  help:"path to the output directory (default: --pkg)"`
 }
 
-func (g globalCmd) Run(args []string) error {
-	if g.Tag == "" {
-		if len(args) == 0 {
-			return errors.New("tag not provided")
-		}
-		g.Tag = args[0]
-	}
-	if g.Pkg == "" {
-		g.Pkg = g.Tag
-	}
-	if g.Output == "" {
-		g.Output = g.Pkg
-	}
-
-	templText := `// +build {{if .Not}}!{{end}}{{.Tag}}
+const templText = `// +build {{if .Not}}!{{end}}{{.Tag}}
 
 package {{.PkgLeaf}}
 
@@ -51,10 +37,27 @@ func Is{{capitalize .Tag}}() bool {
 	return {{if .Not}}false{{else}}true{{end}}
 }
 `
-	templParams := struct {
-		Not          bool
-		Tag, PkgLeaf string
-	}{
+
+type templParams struct {
+	Not          bool
+	Tag, PkgLeaf string
+}
+
+func (g globalCmd) Run(args []string) error {
+	if g.Tag == "" {
+		if len(args) == 0 {
+			return errors.New("tag not provided")
+		}
+		g.Tag = args[0]
+	}
+	if g.Pkg == "" {
+		g.Pkg = g.Tag
+	}
+	if g.Output == "" {
+		g.Output = g.Pkg
+	}
+
+	params := templParams{
 		Tag:     g.Tag,
 		PkgLeaf: pkgleaf(g.Pkg),
 	}
@@ -74,29 +77,33 @@ func Is{{capitalize .Tag}}() bool {
 	}
 
 	// gen tag.go
-	templParams.Not = false
-	filename := filepath.Join(g.Output, g.Tag+".go")
-	file, err := os.Create(filename)
+	params.Not = false
+	err = generate(templ, params, g.Output, g.Tag+".go")
 	if err != nil {
-		return fmt.Errorf("create %v: %v", filename, err)
-	}
-	err = templ.Execute(file, templParams)
-	if err != nil {
-		file.Close()
-		return fmt.Errorf("write to %v: %v", filename, err)
+		return fmt.Errorf("failed to generate %v.go: %v", g.Tag, err)
 	}
 
 	// gen notag.go
-	templParams.Not = true
-	filename = filepath.Join(g.Output, "no"+g.Tag+".go")
-	file, err = os.Create(filename)
+	params.Not = true
+	err = generate(templ, params, g.Output, "no"+g.Tag+".go")
 	if err != nil {
-		return fmt.Errorf("create %v: %v", filename, err)
+		return fmt.Errorf("failed to generate no%v.go: %v", g.Tag, err)
 	}
-	err = templ.Execute(file, templParams)
+
+	return nil
+}
+
+func generate(templ *template.Template, params templParams, output, filename string) error {
+	path := filepath.Join(output, filename)
+	file, err := os.Create(path)
 	if err != nil {
-		file.Close()
-		return fmt.Errorf("write to %v: %v", filename, err)
+		return fmt.Errorf("create %v: %v", path, err)
+	}
+	defer file.Close()
+
+	err = templ.Execute(file, params)
+	if err != nil {
+		return fmt.Errorf("write to %v: %v", path, err)
 	}
 
 	return nil
@@ -105,7 +112,7 @@ func Is{{capitalize .Tag}}() bool {
 func main() {
 	app := gli.New(&globalCmd{})
 	app.Name = "buildcond"
-	app.Desc = "A go-generate command to generate a {build tag}.Do function (generates {tag}.go and no{tag}.go) "
+	app.Desc = "A go-generate command to generate a If{tag}/Unless{tag}/Is{tag} function (generates {tag}.go and no{tag}.go) "
 	app.Version = "0.1.0"
 	app.Usage = `buildcond --tag=mytag
 buildcond --tag=mytag --pkg=my --output=cond/my`

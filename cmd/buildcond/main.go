@@ -110,7 +110,7 @@ func generate(templ *template.Template, params templParams, output, filename str
 }
 
 func main() {
-	app := gli.New(&globalCmd{})
+	app := gli.NewWith(&globalCmd{})
 	app.Name = "buildcond"
 	app.Desc = "A go-generate command to generate a If{tag}/Unless{tag}/Is{tag} function (generates {tag}.go and no{tag}.go) "
 	app.Version = "0.1.0"

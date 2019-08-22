@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"bitbucket.org/shu_go/gli"
+	"github.com/shu-go/gli"
 )
 
 type globalCmd struct {

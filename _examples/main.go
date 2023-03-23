@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 
-	"bitbucket.org/shu/buildcond/cond"
+	"github.com/shu-go/buildcond/cond"
 )
 
 func main() {
